@@ -10,6 +10,6 @@ using namespace sf;
 
 int main(void)
 {
-    
+    Texture t1;
 }
 
