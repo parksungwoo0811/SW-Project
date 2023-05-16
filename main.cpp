@@ -18,8 +18,15 @@ struct
 
 int main(void)
 {
+    RenderWindow window(VideoMode(Width, Height), "Project Game");
+    window.setFramerateLimit(60);
+                        
+    
+    //이미지 불러오기
     Texture t1;
     Texture t2;
+    t1.loadFromFile("");
+    t2.loadFromFile("");
 }
 
 
