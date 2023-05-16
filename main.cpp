@@ -22,3 +22,4 @@ int main(void)
     Texture t2;
 }
 
+//이 커밋은 12:56에 만들어짐
