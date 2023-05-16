@@ -1,0 +1,4 @@
+C:\Users\user\source\repos\sfml\x64\Debug\sfml.exe
+C:\Users\user\source\repos\sfml2\x64\Debug\project.exe
+C:\Users\user\source\repos\Project Assignment1\x64\Debug\project.exe
+C:\Users\user\source\repos\SW Project\x64\Debug\project.exe
