@@ -10,6 +10,12 @@ using namespace sf;
 #define Width 600
 #define Height 300
 
+struct 
+{
+    int x;
+    int y;
+};
+
 int main(void)
 {
     Texture t1;
