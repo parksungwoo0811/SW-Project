@@ -13,5 +13,6 @@ using namespace sf;
 int main(void)
 {
     Texture t1;
+    Texture t2;
 }
 
