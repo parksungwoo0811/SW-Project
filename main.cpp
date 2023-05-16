@@ -7,6 +7,8 @@
 using namespace std;
 using namespace sf;
 
+#define Width 600
+#define Height 300
 
 int main(void)
 {
