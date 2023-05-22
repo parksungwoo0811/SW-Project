@@ -7,10 +7,25 @@
 using namespace std;
 using namespace sf;
 
+#define Width 600
+#define Height 300
+
+struct 
+{
+    int x;
+    int y;
+};
 
 int main(void)
 {
+    RenderWindow window(VideoMode(Width, Height), "Project Game");
+    window.setFramerateLimit(60);
+                        
     
+    //이미지 불러오기
+    Texture t1;
+    Texture t2;
+    t1.loadFromFile("");
+    t2.loadFromFile("");
 }
 
-#연습용 커밋
