@@ -29,4 +29,3 @@ int main(void)
     t2.loadFromFile("");
 }
 
-
