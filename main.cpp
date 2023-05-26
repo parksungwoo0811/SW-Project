@@ -7,8 +7,8 @@
 using namespace std;
 using namespace sf;
 
-#define Width 600
-#define Height 300
+#define Width 1200
+#define Height 600
 
 struct 
 {
