@@ -10,79 +10,95 @@ using namespace sf;
 #define Width 1200
 #define Height 600
 
-struct 
+struct Position
 {
     int x;
     int y;
 };
-
+ 
 int main(void)
 {
-    RenderWindow window(VideoMode(Width, Height), "Project Game");
-    window.setFramerateLimit(60);
-                        
-    
-    //이미지 불러오기
+    //SFML 윈도우을 열어주고, title을 정해줍니다.
+    RenderWindow window(VideoMode(WIDTH, HEIGHT), "Dinosaur Game. By BlockDMask");
+    window.setFramerateLimit(60);    //프레임
+ 
+    //dino
     Texture t1;
     Texture t2;
-    t1.loadFromFile("");
-    t2.loadFromFile("");
+    t1.loadFromFile("images/boo1.png");
+    t2.loadFromFile("images/boo2.png");
+ 
+    //스프라이트로
+    Sprite dinoArr[2];
+    BOOi[0] = Sprite(t1);
+    BOOi[1] = Sprite(t2);
+ 
+    static const int DINO_Y_BOTTOM = HEIGHT - t1.getSize().y;    //바닥위치
     
-    //이미지 교체
-    int index = 0;
-    float frame = 0.f;
-    float framespeed = 0.4f;
-    const int countChange = 5;
+    Position dinoPos;
+    BooPos.x = 50;
+    BooPos.y = DINO_Y_BOTTOM;
+ 
+    //프레임에 따라 왼발 오른발 해주기 위한 변수 네개
+    int index            = 0;    //왼발 오른발 인덱스
+    float frame            = 0.f;
+    float frameSpeed    = 0.4f;
+    const int changeCount = 5;    //몇 프레임에 체인지 할지
+ 
+    const int gravity = 5;    //중력. 점프할때 사용
+    bool isJumping = false;    //점프 중인지
+    bool isBottom = true;    //바닥에 발이 닿았는지
     
-   //Boo 위치
-    Sprite Boo[2];
-    Boo[0] = Sprite(t1);
-    Boo[1] = Sprite(t2);
-    
-    static const int BOO_Y_Pos = Height - t1.getSize().y;
-    
-    while (window.isOpen())        
+    //tree
+    Texture t3;
+    t3.loadFromFile("images/obj.png");
+    Sprite obj(t3);
+    static const int OBJ_Y_BOTTOM = HEIGHT - t3.getSize().y;    //나무 바닥
+    Position objPos;
+    objPos.x = WIDTH - 20;
+    objPos.y = TREE_Y_BOTTOM;
+    const int objSpeed = 4;    //장애물 속
+    while (window.isOpen())        //윈도우가 열렸으면
     {
         Event e;
-        while (window.pollEvent(e))    
+        while (window.pollEvent(e))    //윈도우 이벤트를 받는데
         {
-            if (e.type == Event::Closed)    
+            if (e.type == Event::Closed)    //닫기면 윈도우 닫음
             {
                 window.close();
             }
         }
         //logic.
-        //Boo jump.
-        if (Keyboard::isKeyPressed(Keyboard::Space)) 
+        //boo jump.
+        if (Keyboard::isKeyPressed(Keyboard::Space)) //스페이스 입력 감지
         {
-            if (isBottom && !isJumping)    
+            if (isBottom && !isJumping)    //바닥이고, 점프중이 아닐때 점프 가능
             {
                 //make jumping stage;
                 isJumping = true;
                 isBottom = false;
             }
         }
-        //Boo jump(up and down)
+        //boo jump(up and down)
         if (isJumping)    
         {
-            BooPos.y -= gravity; 
+            BooPos.y -= gravity; //점프중일때는 y에서 중력을 뺴줌 그럼 올라감
         }
         else
         {
             BooPos.y += gravity;
         }
-        // 부 점프 한계 설정
-        
-        if (BooPos.y >= BOO_Y_BOTTOM)   
+        //boo jump limit, Boo bottom limit.
+        if (BooPos.y >= BOO_Y_BOTTOM)    //바닥에서 지하로 가지 않도록 설정
         {
             BooPos.y = BOO_Y_BOTTOM;
             isBottom = true;
         }
-        if (BooPos.y <= BOO_Y_BOTTOM - 100)
+        if (BooPos.y <= BOO_Y_BOTTOM - 100)    //점프해서 우주로 가지 않도록 설정
         {
             isJumping = false;
         }
-        //Boo step.
+        //boo step.
         frame += frameSpeed;
         if (frame > changeCount)
         {
@@ -90,27 +106,24 @@ int main(void)
             ++index;
             if (index >= 2) { index = 0; }
         }
-        //tree move.
-        if (treePos.x <= 0)
+        //obj move.
+        if (objPos.x <= 0)
         {
-            treePos.x = WIDTH;
+            objPos.x = WIDTH;
         }
         else
         {
-            treePos.x -= treeSpeed;
+            objPos.x -= objSpeed;
         }
-        //tree Position.
-        tree.setPosition(treePos.x, treePos.y);
-        //Boo Position.
-        BooArr[index].setPosition(BooPos.x, BooPos.y);
+        //obj Position.
+        obj.setPosition(objPos.x, objPos.y);
+        //boo Position.
+        Booi[index].setPosition(BooPos.x, BooPos.y);
         //draw.
         window.clear(Color::White);
-        window.draw(BooArr[index]);
-        window.draw(tree);
+        window.draw(BOOi[index]);
+        window.draw(obj);
         window.display();
     }
-    
-    
+    return 0;
 }
-
-
