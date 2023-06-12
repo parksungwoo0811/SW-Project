@@ -33,6 +33,11 @@ for(int=1;i<=8;i++) {
 }
 
 // 장애물
+struct Obstacle
+{
+    sf::RectangleShape shape;
+    float speed;
+};
 
 // 장애물 생성 함수.
 void spawnObstacle()
