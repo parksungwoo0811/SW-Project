@@ -32,6 +32,41 @@ for(int=1;i<=8;i++) {
     textures.push_back(texture);
 }
 
+
+ // 시간 기반으로 점수 증가
+            Time elapsedTime = clock.getElapsedTime();
+            if (elapsedTime.asSeconds() >= 1.0f) // 1초마다 점수 증가
+            {
+                score += 1; // 점수 증가량 설정
+                clock.restart();
+            }
+
+            if (score == 20)
+            {
+                end++;
+            }
+
+            // Set positions
+            tree.setPosition(treePos.x, treePos.y);
+            playerFrames[index].setPosition(playerPos.x, playerPos.y);
+
+            // Update score text
+            scoreText.setString("Score: " + to_string(score));
+
+            // Draw
+            window.clear(Color::White);
+            window.draw(playerFrames[index]);
+            if (isAttacking)
+            {
+                window.draw(attackRectangle);
+            }
+            window.draw(cooldownGauge); // 쿨타임 게이지 그리기
+            window.draw(tree);
+            window.draw(scoreText); // 점수 텍스트 출력
+            window.draw(rectangle);
+        }
+
+
 int main(void)
 {
     Texture t1;
