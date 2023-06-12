@@ -4,11 +4,14 @@
 #include <stdlib.h>
 #include <sstream>
 
+#include <random>
+
 using namespace std;
 using namespace sf;
 
 #define Width 1200
 #define Height 600
+
 
 struct Position
 {
@@ -143,25 +146,82 @@ while (window.isOpen())
         }
 
 
+int getRandomNumber(int min, int max) {
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_int_distribution<> distrib(min, max);
+    return distrib(gen);
+}
+
+
+bool checkCollision(const Sprite& player, const Sprite& obstacle) {
+    FloatRect playerBounds = player.getGlobalBounds();
+    FloatRect obstacleBounds = obstacle.getGlobalBounds();
+
+    // 플레이어가 장애물 위에 있는지 확인
+    bool isPlayerAboveObstacle = player.getPosition().y + playerBounds.height < obstacle.getPosition().y + obstacleBounds.height;
+
+    // 플레이어와 장애물의 전역 경계 상자가 겹치고, 플레이어가 장애물 위에 없는 경우에만 충돌 감지
+    return playerBounds.intersects(obstacleBounds) && !isPlayerAboveObstacle;
+}
+
 int main(void)
 {
+    // SFML 윈도우
+    RenderWindow window(VideoMode(Width, Height), "Open Run");
+    window.setFramerateLimit(144); // 프레임
+    // ---------------------------------------------------------------------------
+
+    //폰트 설정
     Font arial;
     arial.loadFromFile("arial.ttf");
 
-    // SFML 윈도우
-    RenderWindow window(VideoMode(Width, Height), "Open Run");
-    window.setFramerateLimit(60); // 프레임
+    // ---------------------------------------------------------------------------
+    
+     // 배경 이미지 로드
+    const int numBackgrounds = 30; // 배경 이미지 개수
+    std::vector<sf::Texture> b(numBackgrounds);
+    for (int i = 0; i < numBackgrounds; ++i) {
+        std::stringstream ss;
+        ss << "images/b" << (i + 1) << ".png";
+        if (!b[i].loadFromFile(ss.str())) {
+            // 이미지 로드 실패
+            std::cerr << "Failed to load background image: " << ss.str() << std::endl;
+            return -1;
+        }
+    }
 
-    //Ground
-    sf::RectangleShape rectangle;
-    rectangle.setSize(sf::Vector2f(1200.f, 55.f));
+    sf::Sprite backgroundSprite(b[0]);
 
-    int windowHeight = window.getSize().y;
-    rectangle.setPosition(0.f, windowHeight - rectangle.getSize().y);
+    // 배경 이미지 변경을 위한 변수들
+    int currentBackgroundIndex = 0; // 현재 보여지고 있는 배경 이미지 인덱스
+    int currentBackgroundScore = 2; // 현재 보여지고 있는 배경 이미지의 점수
 
-    rectangle.setFillColor(sf::Color::Black);
 
-    // Player
+    // ---------------------------------------------------------------------------
+    
+    // Ground 이미지 로드
+    sf::Texture groundTexture;
+    if (!groundTexture.loadFromFile("images/G.png")) {
+        // 이미지 로드 실패
+        std::cerr << "Failed to load Ground image!" << std::endl;
+        return -1;
+    }
+
+    // Ground 스프라이트 생성
+    sf::Sprite groundSprite(groundTexture);
+
+    // Ground 크기 조정
+    float scaleFactor = 2.5f;
+    groundSprite.setScale(1.8*scaleFactor, scaleFactor);
+
+    // Ground 위치 설정
+    int windowHeight = window.getSize().y - 17;
+    groundSprite.setPosition(-15.f, windowHeight - groundTexture.getSize().y);
+
+    // ---------------------------------------------------------------------------
+
+    // 플레이어
     vector<Texture> textures; // 텍스처를 벡터로 저장
     for (int i = 1; i <= 8; i++) {
         Texture texture;
@@ -171,142 +231,25 @@ int main(void)
         textures.push_back(texture);
     }
 
-    bool isAttacking = false; // 플레이어의 공격 여부를 나타내는 변수
-    bool isCooling = false; // 플레이어의 쿨타임 여부를 나타내는 변수
-    sf::RectangleShape attackRectangle; // 공격에 사용할 직사각형
-    sf::Clock attackClock; // 공격 직사각형의 지속 시간을 측정하기 위한 시계
-    sf::Clock cooldownClock; // 쿨타임을 측정하기 위한 시계
-    const float cooldownDuration = 3.0f; // 쿨타임의 지속 시간
-
-    attackRectangle.setSize(sf::Vector2f(100.f, 20.f));
-    attackRectangle.setFillColor(sf::Color::Yellow);
-
-    float cooldownGaugeFullWidth = 200.0;
-
-    // CoolDown gauge
-    sf::RectangleShape cooldownGauge;
-    cooldownGauge.setSize(sf::Vector2f(200.f, 20.f)); // 게이지의 크기 설정
-    cooldownGauge.setPosition(900.f, 20.f); // 게이지의 위치 설정
-    cooldownGauge.setFillColor(sf::Color::Blue); // 게이지의 색상 설정
-
-    //장애물
-    float obstacleSpawnTime = 15.0f;
-
-    // 스프라이트로
+    // 스프라이트
     vector<Sprite> playerFrames; // 스프라이트를 벡터로 저장
     for (int i = 0; i < textures.size(); i++) {
         Sprite sprite(textures[i]);
-        sprite.setScale(1.0f, 1.0f); // 크기 조절
+        sprite.setScale(1.5f, 1.5f); // 크기 조절
         playerFrames.push_back(sprite);
     }
 
-    static const int PLAYER_Y_BOTTOM = Height - textures[0].getSize().y; // 바닥 위치
+    static const int PLAYER_Y_BOTTOM = Height - textures[0].getSize().y - 60; // 바닥 위치
 
     Position playerPos;
-    playerPos.x = 50;
-    playerPos.y = PLAYER_Y_BOTTOM;
+    playerPos.x = 100;
+    playerPos.y = PLAYER_Y_BOTTOM ;
 
     // 프레임에 따라 이미지 변경을 위한 변수들
     int index = 0; // 이미지 인덱스
     float frame = 0.f;
     float frameSpeed = 1.0f; // 이미지 변경 속도
     const int changeCount = 8; // 몇 프레임마다 변경할지 (수정된 부분)
-
-    const int gravity = 5; // 중력. 점프할 때 사용
-    bool isJumping = false; // 점프 중인지
-    bool isBottom = true; // 바닥에 발이 닿았는지
-    bool canDoubleJump = true; // 더블 점프 가능한지
-
-    // Tree
-    Texture treeTexture;
-    treeTexture.loadFromFile("images/obj.png");
-    Sprite tree(treeTexture);
-    static const int TREE_Y_BOTTOM = Height - treeTexture.getSize().y; // 나무 바닥
-    Position treePos;
-    treePos.x = Width - 20;
-    treePos.y = TREE_Y_BOTTOM; // 나무의 y 위치 수정
-    const int treeSpeed = 4; // 장애물 속도
-    
-    // 장애물
-struct Obstacle
-{
-    sf::RectangleShape shape;
-    float speed;
-};
-
-vector<Obstacle> obstacles; // 장애물들을 저장하는 벡터
-sf::Clock obstacleSpawnClock; // 장애물 생성 시간을 측정하기 위한 시계
-const float obstacleSpawnDelay = 3.0f; // 장애물 생성 간격
-
-// 장애물 생성 함수
-void spawnObstacle()
-{
-    Obstacle obstacle;
-    obstacle.shape.setSize(sf::Vector2f(50.f, 50.f));
-    obstacle.shape.setFillColor(sf::Color::Red);
-
-    int obstacleY = PLAYER_Y_BOTTOM - obstacle.shape.getSize().y;
-    obstacle.shape.setPosition(Width, obstacleY);
-
-    obstacle.speed = 5.0f;
-
-    obstacles.push_back(obstacle);
-}
-
-// 충돌 감지 함수
-bool isColliding(const sf::RectangleShape& rect1, const sf::RectangleShape& rect2)
-{
-    sf::FloatRect rect1Bounds = rect1.getGlobalBounds();
-    sf::FloatRect rect2Bounds = rect2.getGlobalBounds();
-
-    return rect1Bounds.intersects(rect2Bounds);
-}
-
-…
-
-// 게임 루프 내부에서 장애물 생성 및 충돌 감지 수행
-
-while (window.isOpen())
-{
-    …
-
-    // 장애물 생성
-    if (obstacleSpawnClock.getElapsedTime().asSeconds() >= obstacleSpawnDelay)
-    {
-        spawnObstacle();
-        obstacleSpawnClock.restart();
-    }
-
-    // 장애물 이동 및 충돌 감지
-    for (int i = 0; i < obstacles.size(); i++)
-    {
-        obstacles[i].shape.move(-obstacles[i].speed, 0.f);
-
-        // 플레이어와 장애물 충돌 감지
-        if (isColliding(playerFrames[index], obstacles[i].shape))
-        {
-            end++;
-        }
-
-        // 화면을 벗어난 장애물 제거
-        if (obstacles[i].shape.getPosition().x + obstacles[i].shape.getSize().x < 0.f)
-        {
-            obstacles.erase(obstacles.begin() + i);
-            i—;
-        }
-    }
-
-    …
-
-    // 장애물 그리기
-    for (const Obstacle& obstacle : obstacles)
-    {
-        window.draw(obstacle.shape);
-    }
-
-    …
-}
-
 
     // Score
     Font font;
@@ -322,9 +265,11 @@ while (window.isOpen())
     scoreText.setCharacterSize(30);
     scoreText.setFillColor(Color::Black);
 
-    Clock clock; // SFML 시계
+    //Clock clock; // SFML 시계
 
-     //게임 시작
+    // ---------------------------------------------------------------------------
+
+    //게임 시작
 
     Text GameStart;
     GameStart.setCharacterSize(50);
@@ -368,6 +313,8 @@ while (window.isOpen())
     int start = 0;
     int end = 0;
 
+    // ---------------------------------------------------------------------------
+
     while (window.isOpen()) // 윈도우가 열렸으면
     {
         window.clear();
@@ -379,6 +326,7 @@ while (window.isOpen())
         }
         else if (end != 0)
         {
+            window.clear();
             window.draw(GameOver);
 
             sScore.str("");
@@ -410,6 +358,7 @@ while (window.isOpen())
                 scoreText.setString("Score: " + to_string(score));
             }
 
+            // ---------------------------------------------------------------------------
         }
         else
         {
@@ -418,47 +367,37 @@ while (window.isOpen())
             window.draw(scoreText);
             scoreText.setCharacterSize(30);
             scoreText.setFillColor(Color::Black);
-
-            // Player jump
-            if (Keyboard::isKeyPressed(Keyboard::Space)) // 스페이스 입력 감지
+            //logic.
+            //dino jump.
+            if (Keyboard::isKeyPressed(Keyboard::Space)) //스페이스 입력 감지
             {
-                if (isBottom && !isJumping) // 바닥이고, 점프 중이 아닐 때 점프 가능
+                if (isBottom && !isJumping)    //바닥이고, 점프중이 아닐때 점프 가능
                 {
-                    // Make jumping stage
+                    //make jumping stage;
                     isJumping = true;
                     isBottom = false;
-                    canDoubleJump = true; // 더블 점프 가능하도록 설정
-                }
-                else if (canDoubleJump) // 점프 중이면서 더블 점프 가능할 때
-                {
-                    // Make double jump
-                    canDoubleJump = false; // 더블 점프 불가능하도록 설정
-                    playerPos.y -= gravity * 2; // 중력의 2배만큼 올라감
                 }
             }
-
-            // Player jump (up and down)
+            //dino jump(up and down)
             if (isJumping)
             {
-                playerPos.y -= gravity; // 점프 중일 때는 y에서 중력을 뺌 (올라감)
+                playerPos.y -= gravity; //점프중일때는 y에서 중력을 뺴줌 그럼 올라감
             }
             else
             {
                 playerPos.y += gravity;
             }
-
-            // Player jump limit, Player bottom limit
-            if (playerPos.y >= PLAYER_Y_BOTTOM) // 바닥에서 지하로 가지 않도록 설정
+            //dino jump limit, dino bottom limit.
+            if (playerPos.y >= PLAYER_Y_BOTTOM)    //바닥에서 지하로 가지 않도록 설정
             {
                 playerPos.y = PLAYER_Y_BOTTOM;
                 isBottom = true;
-                canDoubleJump = false; // 점프 후에는 더블 점프 불가능하도록 설정
             }
-            if (playerPos.y <= PLAYER_Y_BOTTOM - 100) // 점프해서 우주로 가지 않도록 설정
+            if (playerPos.y <= PLAYER_Y_BOTTOM - 150)    //점프해서 우주로 가지 않도록 설정
             {
                 isJumping = false;
             }
-
+            // ---------------------------------------------------------------------------
             // Player step
             frame += frameSpeed;
             if (frame > changeCount)
@@ -469,62 +408,58 @@ while (window.isOpen())
                     index = 0;
                 }
             }
+            // ---------------------------------------------------------------------------
+            // Move trees
+            for (int i = 0; i < trees.size(); i++) {
+                trees[i].setPosition(treePositions[i].x, treePositions[i].y - 53);
+                treePositions[i].x -= 6;
 
-            // Player attack
-            if (Keyboard::isKeyPressed(Keyboard::X))
-            {
-                if (!isAttacking && !isCooling)
-                {
-                    isAttacking = true;
+                // Check if tree is out of screen
+                if (treePositions[i].x < -obstacleWidth) {
+                    // Remove the old tree
+                    trees.erase(trees.begin() + i);
+                    treePositions.erase(treePositions.begin() + i);
+                    i--; // Adjust the loop index
 
-                    // 직사각형 위치 설정 (플레이어의 앞에)
-                    int playerWidth = playerFrames[index].getGlobalBounds().width;
-                    attackRectangle.setPosition(playerPos.x + playerWidth, playerPos.y);
+                    // Generate a new tree
+                    const int fixedYPosition = PLAYER_Y_BOTTOM - obstacleHeight; // Fixed y position
+                    Position position;
+                    position.x = Width + getRandomNumber(300, 800);
+                    position.y = fixedYPosition;
+                    treePositions.push_back(position);
 
-                    // 공격 시간 측정 시작
-                    attackClock.restart();
+                    // Create a new tree sprite and add it to the vector
+                    sf::Sprite newTree;
+                    // ... Set the properties of the new tree sprite (position, texture, etc.)
+                    trees.push_back(newTree);
+
+                }
+                else {
+                    // Check collision
+                    if (checkCollision(playerFrames[index], trees[i])) {
+                        // Handle collision (e.g. game over)
+                        end++;
+                        cout << "Game over!" << endl;
+                        // ...
+                    }
                 }
             }
 
-            // Check if attack duration is over
-            if (isAttacking && attackClock.getElapsedTime().asSeconds() >= 0.5f)
-            {
-                isAttacking = false;
-                isCooling = true;
+            // Generate a new tree if needed
+            if (trees.size() < 3) {
+                const int fixedYPosition = PLAYER_Y_BOTTOM - obstacleHeight; // Fixed y position
+                Position position;
+                position.x = Width + getRandomNumber(300, 800);
+                position.y = fixedYPosition;
+                treePositions.push_back(position);
 
-                // Start cooldown measurement
-                cooldownClock.restart();
-
-                // Reset cooldown gauge
-                cooldownGauge.setSize(sf::Vector2f(cooldownGaugeFullWidth, cooldownGauge.getSize().y));
+                // Create a new tree sprite and add it to the vector
+                sf::Sprite newTree;
+                newTree.setPosition(position.x, position.y);
+                trees.push_back(newTree);
             }
 
-            // Check if cooldown is over
-            if (isCooling && cooldownClock.getElapsedTime().asSeconds() >= cooldownDuration)
-            {
-                isCooling = false;
-            }
-
-            // Update cooldown gauge
-            if (isCooling)
-            {
-                float elapsedCooldownTime = cooldownClock.getElapsedTime().asSeconds();
-                float remainingCooldownTime = cooldownDuration - elapsedCooldownTime;
-                float currentCooldownWidth = cooldownGaugeFullWidth * (1 - remainingCooldownTime / cooldownDuration);
-                cooldownGauge.setSize(sf::Vector2f(currentCooldownWidth, cooldownGauge.getSize().y));
-            }
-
-            // Tree move
-            if (treePos.x <= 0)
-            {
-                treePos.x = Width;
-            }
-            else
-            {
-                treePos.x -= treeSpeed;
-            }
-
-
+            // ---------------------------------------------------------------------------
             // 시간 기반으로 점수 증가
             Time elapsedTime = clock.getElapsedTime();
             if (elapsedTime.asSeconds() >= 1.0f) // 1초마다 점수 증가
@@ -533,29 +468,42 @@ while (window.isOpen())
                 clock.restart();
             }
 
-            if (score == 20)
-            {
-                end++;
+            // ---------------------------------------------------------------------------
+
+            
+            
+            // ---------------------------------------------------------------------------
+            
+            // 배경 이미지 변경
+            if (score >= currentBackgroundScore) {
+                currentBackgroundIndex = (currentBackgroundIndex + 1) % numBackgrounds;
+                currentBackgroundScore += 2;
+                backgroundSprite.setTexture(b[currentBackgroundIndex]);
             }
 
+            // ---------------------------------------------------------------------------
+
+            
             // Set positions
-            tree.setPosition(treePos.x, treePos.y);
+            //tree.setPosition(treePos.x, treePos.y-54);
             playerFrames[index].setPosition(playerPos.x, playerPos.y);
 
             // Update score text
             scoreText.setString("Score: " + to_string(score));
 
-            // Draw
+            // ---------------------------------------------------------------------------
+            
+            //draw.
             window.clear(Color::White);
+            window.draw(backgroundSprite);
+            window.draw(groundSprite);
             window.draw(playerFrames[index]);
-            if (isAttacking)
-            {
-                window.draw(attackRectangle);
+            for (const auto& tree : trees) {
+                window.draw(tree);
             }
-            window.draw(cooldownGauge); // 쿨타임 게이지 그리기
-            window.draw(tree);
             window.draw(scoreText); // 점수 텍스트 출력
-            window.draw(rectangle);
+
+            window.display();
         }
 
         window.display();
