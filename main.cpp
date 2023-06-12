@@ -31,7 +31,7 @@ for(int=1;i<=8;i++) {
     texture.loadFromFile(ss.str());
     textures.push_back(texture);
 }
-//장애물  생성 파트
+
 // 장애물
 struct Obstacle
 {
