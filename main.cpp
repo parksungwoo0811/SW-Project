@@ -31,16 +31,7 @@ for(int=1;i<=8;i++) {
     texture.loadFromFile(ss.str());
     textures.push_back(texture);
 }
-// 장애물
-struct Obstacle
-{
-    sf::RectangleShape shape;
-    float speed;
-};
 
-vector<Obstacle> obstacles; // 장애물들을 저장하는 벡터
-sf::Clock obstacleSpawnClock; // 장애물 생성 시간을 측정하기 위한 시계
-const float obstacleSpawnDelay = 3.0f; // 장애물 생성 간격
 
 // 장애물 생성 함수.
 void spawnObstacle()
