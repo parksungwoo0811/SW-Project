@@ -16,6 +16,16 @@ struct
     int y;
 };
 
+
+vector<Texture> textures;
+for(int=1;i<=8;i++) {
+    Texture texture;
+    stringstream ss;
+    ss << "images/r" << i <<".png";
+    texture.loadFromFile(ss.str());
+    textures.push_back(texture);
+}
+
 int main(void)
 {
     Texture t1;
