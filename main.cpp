@@ -42,7 +42,7 @@ vector<Obstacle> obstacles; // 장애물들을 저장하는 벡터
 sf::Clock obstacleSpawnClock; // 장애물 생성 시간을 측정하기 위한 시계
 const float obstacleSpawnDelay = 3.0f; // 장애물 생성 간격
 
-// 장애물 생성 함수
+// 장애물 생성 함수.
 void spawnObstacle()
 {
     Obstacle obstacle;
@@ -57,7 +57,7 @@ void spawnObstacle()
     obstacles.push_back(obstacle);
 }
 
-// 충돌 감지 함수
+// 충돌 감지 함수.
 bool isColliding(const sf::RectangleShape& rect1, const sf::RectangleShape& rect2)
 {
     sf::FloatRect rect1Bounds = rect1.getGlobalBounds();
