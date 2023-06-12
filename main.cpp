@@ -32,7 +32,7 @@ for(int=1;i<=8;i++) {
     textures.push_back(texture);
 }
 
-// 장애물
+// 장애물 //장애물 설정
 struct Obstacle
 {
     sf::RectangleShape shape;
