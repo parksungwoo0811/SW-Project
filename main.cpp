@@ -18,133 +18,6 @@ struct Position
     int x;
     int y;
 };
-bool isAttacking = false; // 플레이어의 공격 여부를 나타내는 변수
-    bool isCooling = false; // 플레이어의 쿨타임 여부를 나타내는 변수
-    sf::RectangleShape attackRectangle; // 공격에 사용할 직사각형
-    sf::Clock attackClock; // 공격 직사각형의 지속 시간을 측정하기 위한 시계
-    sf::Clock cooldownClock; // 쿨타임을 측정하기 위한 시계
-    const float cooldownDuration = 3.0f; // 쿨타임의 지속 시간
-
-
-vector<Texture> textures;
-for(int=1;i<=8;i++) {
-    Texture texture;
-    stringstream ss;
-    ss << "images/r" << i <<".png";
-    texture.loadFromFile(ss.str());
-    textures.push_back(texture);
-}
-//장애물  생성 파트
-// 장애물
-struct Obstacle
-{
-    sf::RectangleShape shape;
-    float speed;
-};
-
-// 장애물 생성 함수.
-void spawnObstacle()
-{
-    Obstacle obstacle;
-    obstacle.shape.setSize(sf::Vector2f(50.f, 50.f));
-    obstacle.shape.setFillColor(sf::Color::Red);
-
-    int obstacleY = PLAYER_Y_BOTTOM - obstacle.shape.getSize().y;
-    obstacle.shape.setPosition(Width, obstacleY);
-
-    obstacle.speed = 5.0f;
-
-    obstacles.push_back(obstacle);
-}
-
-// 충돌 감지 함수.
-bool isColliding(const sf::RectangleShape& rect1, const sf::RectangleShape& rect2)
-{
-    sf::FloatRect rect1Bounds = rect1.getGlobalBounds();
-    sf::FloatRect rect2Bounds = rect2.getGlobalBounds();
-
-    return rect1Bounds.intersects(rect2Bounds);
-}
-
-…
-
-// 게임 루프 내부에서 장애물 생성 및 충돌 감지 수행
-
-while (window.isOpen())
-{
-    …
-
-    // 장애물 생성
-    if (obstacleSpawnClock.getElapsedTime().asSeconds() >= obstacleSpawnDelay)
-    {
-        spawnObstacle();
-        obstacleSpawnClock.restart();
-    }
-
-    // 장애물 이동 및 충돌 감지
-    for (int i = 0; i < obstacles.size(); i++)
-    {
-        obstacles[i].shape.move(-obstacles[i].speed, 0.f);
-
-        // 플레이어와 장애물 충돌 감지
-        if (isColliding(playerFrames[index], obstacles[i].shape))
-        {
-            end++;
-        }
-
-        // 화면을 벗어난 장애물 제거
-        if (obstacles[i].shape.getPosition().x + obstacles[i].shape.getSize().x < 0.f)
-        {
-            obstacles.erase(obstacles.begin() + i);
-            i—;
-        }
-    }
-
-    …
-
-    // 장애물 그리기
-    for (const Obstacle& obstacle : obstacles)
-    {
-        window.draw(obstacle.shape);
-    }
-
-    …
-}
-
-
- // 시간 기반으로 점수 증가
-            Time elapsedTime = clock.getElapsedTime();
-            if (elapsedTime.asSeconds() >= 1.0f) // 1초마다 점수 증가
-            {
-                score += 1; // 점수 증가량 설정
-                clock.restart();
-            }
-
-            if (score == 20)
-            {
-                end++;
-            }
-
-            // Set positions
-            tree.setPosition(treePos.x, treePos.y);
-            playerFrames[index].setPosition(playerPos.x, playerPos.y);
-
-            // Update score text
-            scoreText.setString("Score: " + to_string(score));
-
-            // Draw
-            window.clear(Color::White);
-            window.draw(playerFrames[index]);
-            if (isAttacking)
-            {
-                window.draw(attackRectangle);
-            }
-            window.draw(cooldownGauge); // 쿨타임 게이지 그리기
-            window.draw(tree);
-            window.draw(scoreText); // 점수 텍스트 출력
-            window.draw(rectangle);
-        }
-
 
 int getRandomNumber(int min, int max) {
     random_device rd;
@@ -154,15 +27,44 @@ int getRandomNumber(int min, int max) {
 }
 
 
-bool checkCollision(const Sprite& player, const Sprite& obstacle) {
-    FloatRect playerBounds = player.getGlobalBounds();
-    FloatRect obstacleBounds = obstacle.getGlobalBounds();
+bool checkCollisionCircle(const sf::CircleShape& player, const sf::CircleShape& obstacle) {
+    sf::Vector2f playerPosition = player.getPosition();
+    sf::Vector2f obstaclePosition = obstacle.getPosition();
 
-    // 플레이어가 장애물 위에 있는지 확인
-    bool isPlayerAboveObstacle = player.getPosition().y + playerBounds.height < obstacle.getPosition().y + obstacleBounds.height;
+    // 플레이어와 장애물의 중심점 사이의 거리를 계산합니다.
+    float distance = std::sqrt(std::pow(playerPosition.x - obstaclePosition.x, 2) + std::pow(playerPosition.y - obstaclePosition.y, 2));
 
-    // 플레이어와 장애물의 전역 경계 상자가 겹치고, 플레이어가 장애물 위에 없는 경우에만 충돌 감지
-    return playerBounds.intersects(obstacleBounds) && !isPlayerAboveObstacle;
+    // 플레이어와 장애물의 반지름을 계산합니다.
+    float playerRadius = player.getRadius()/2;
+    float obstacleRadius = obstacle.getRadius()/2;
+
+    // 플레이어와 장애물의 중심점 사이의 거리가 플레이어와 장애물의 반지름 합보다 작으면 충돌이 발생한 것으로 간주합니다.
+    return distance < playerRadius + (obstacleRadius/4);
+}
+
+// spriteToCircle 함수 정의
+sf::CircleShape spriteToCircle(const sf::Sprite& sprite) {
+    sf::FloatRect spriteBounds = sprite.getGlobalBounds();
+    sf::Vector2f spritePosition = sprite.getPosition();
+    float spriteRadius = std::min(spriteBounds.width, spriteBounds.height) / 8.0f;
+
+    sf::CircleShape circle(spriteRadius);
+    circle.setOrigin(spriteRadius, spriteRadius);
+    circle.setPosition(spritePosition);
+
+    return circle;
+}
+
+// spritesToCircles 함수 정의
+std::vector<sf::CircleShape> spritesToCircles(const std::vector<sf::Sprite>& sprites) {
+    std::vector<sf::CircleShape> circles;
+    circles.reserve(sprites.size());
+
+    for (const auto& sprite : sprites) {
+        circles.push_back(spriteToCircle(sprite));
+    }
+
+    return circles;
 }
 
 int main(void)
@@ -235,21 +137,66 @@ int main(void)
     vector<Sprite> playerFrames; // 스프라이트를 벡터로 저장
     for (int i = 0; i < textures.size(); i++) {
         Sprite sprite(textures[i]);
-        sprite.setScale(1.5f, 1.5f); // 크기 조절
+        //sprite.setScale(1.0f, 1.0f); // 크기 조절
         playerFrames.push_back(sprite);
     }
 
-    static const int PLAYER_Y_BOTTOM = Height - textures[0].getSize().y - 60; // 바닥 위치
+    static const int PLAYER_Y_BOTTOM = Height - textures[0].getSize().y - 40; // 바닥 위치
 
     Position playerPos;
     playerPos.x = 100;
-    playerPos.y = PLAYER_Y_BOTTOM ;
+    playerPos.y = PLAYER_Y_BOTTOM;
 
     // 프레임에 따라 이미지 변경을 위한 변수들
     int index = 0; // 이미지 인덱스
     float frame = 0.f;
     float frameSpeed = 1.0f; // 이미지 변경 속도
     const int changeCount = 8; // 몇 프레임마다 변경할지 (수정된 부분)
+
+    // ---------------------------------------------------------------------------
+
+    const int gravity = 4;    //중력. 점프할때 사용
+    bool isJumping = false;    //점프 중인지
+    bool isBottom = true;    //바닥에 발이 닿았는지
+
+    // ---------------------------------------------------------------------------
+
+
+
+    vector<Texture> treeTextures;
+    vector<string> treeImages = { "images/s1.png", "images/s2.png", "images/s3.png" };
+    for (const auto& image : treeImages) {
+        Texture texture;
+        if (!texture.loadFromFile(image)) {
+            cerr << "Failed to load tree image: " << image << endl;
+            return -1;
+        }
+        treeTextures.push_back(texture);
+    }
+
+    vector<Sprite> trees;
+    for (const auto& texture : treeTextures) {
+        Sprite tree(texture);
+        //tree.setScale(1.0f, 1.0f);
+        trees.push_back(tree);
+    }
+
+    const int obstacleWidth = treeTextures[0].getSize().x * 0.3f;
+    const int obstacleHeight = treeTextures[0].getSize().y;
+
+    vector<Position> treePositions;
+    for (int i = 0; i < 10; i++) {
+        Position position;
+        position.x = Width + i * getRandomNumber(300, 800);
+        position.y = PLAYER_Y_BOTTOM - obstacleHeight;
+        treePositions.push_back(position);
+    }
+
+
+
+    Clock clock;
+
+    // ---------------------------------------------------------------------------
 
     // Score
     Font font;
@@ -409,55 +356,35 @@ int main(void)
                 }
             }
             // ---------------------------------------------------------------------------
+            // 함수 선언
+            sf::CircleShape spriteToCircle(const sf::Sprite & sprite);
+            std::vector<sf::CircleShape> spritesToCircles(const std::vector<sf::Sprite>&sprites);
+            bool checkCollisionCircle(const sf::CircleShape & player, const sf::CircleShape & obstacle);
+
+            // ...
+
             // Move trees
             for (int i = 0; i < trees.size(); i++) {
-                trees[i].setPosition(treePositions[i].x, treePositions[i].y - 53);
+                trees[i].setPosition(treePositions[i].x, treePositions[i].y + 52);
                 treePositions[i].x -= 6;
 
-                // Check if tree is out of screen
                 if (treePositions[i].x < -obstacleWidth) {
-                    // Remove the old tree
-                    trees.erase(trees.begin() + i);
-                    treePositions.erase(treePositions.begin() + i);
-                    i--; // Adjust the loop index
-
-                    // Generate a new tree
-                    const int fixedYPosition = PLAYER_Y_BOTTOM - obstacleHeight; // Fixed y position
-                    Position position;
-                    position.x = Width + getRandomNumber(300, 800);
-                    position.y = fixedYPosition;
-                    treePositions.push_back(position);
-
-                    // Create a new tree sprite and add it to the vector
-                    sf::Sprite newTree;
-                    // ... Set the properties of the new tree sprite (position, texture, etc.)
-                    trees.push_back(newTree);
-
+                    treePositions[i].x = Width + getRandomNumber(300, 800);
                 }
-                else {
-                    // Check collision
-                    if (checkCollision(playerFrames[index], trees[i])) {
-                        // Handle collision (e.g. game over)
-                        end++;
-                        cout << "Game over!" << endl;
-                        // ...
-                    }
+
+                // Check collision
+                if (checkCollisionCircle(spriteToCircle(playerFrames[index]), spriteToCircle(trees[i]))) {
+                    // Handle collision (e.g. game over)
+                    end++;
+                    cout << "Game over!" << endl;
+                    // ...
                 }
             }
 
-            // Generate a new tree if needed
-            if (trees.size() < 3) {
-                const int fixedYPosition = PLAYER_Y_BOTTOM - obstacleHeight; // Fixed y position
-                Position position;
-                position.x = Width + getRandomNumber(300, 800);
-                position.y = fixedYPosition;
-                treePositions.push_back(position);
+            // ...
 
-                // Create a new tree sprite and add it to the vector
-                sf::Sprite newTree;
-                newTree.setPosition(position.x, position.y);
-                trees.push_back(newTree);
-            }
+            
+
 
             // ---------------------------------------------------------------------------
             // 시간 기반으로 점수 증가
@@ -485,7 +412,7 @@ int main(void)
 
             
             // Set positions
-            //tree.setPosition(treePos.x, treePos.y-54);
+            //tree.setPosition(treePos.x, treePos.y);
             playerFrames[index].setPosition(playerPos.x, playerPos.y);
 
             // Update score text
