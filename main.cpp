@@ -177,18 +177,24 @@ int main(void)
     vector<Sprite> trees;
     for (const auto& texture : treeTextures) {
         Sprite tree(texture);
+
         //tree.setScale(1.0f, 1.0f);
+
         trees.push_back(tree);
     }
 
     const int obstacleWidth = treeTextures[0].getSize().x * 0.3f;
+
     const int obstacleHeight = treeTextures[0].getSize().y;
+
 
     vector<Position> treePositions;
     for (int i = 0; i < 10; i++) {
         Position position;
         position.x = Width + i * getRandomNumber(300, 800);
+
         position.y = PLAYER_Y_BOTTOM - obstacleHeight;
+
         treePositions.push_back(position);
     }
 
